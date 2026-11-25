@@ -191,3 +191,14 @@ test('the full-window corners of onboarding and setup leave the window\'s button
   assert.match(read('./onboarding/steps/agent.tsx'), new RegExp(`md:${right.source} md:top-3\\.5`), 'the agent step\'s view switcher');
   assert.match(read('../app/setup/agent/setup-escape.tsx'), new RegExp(`fixed ${right.source} top-4 z-\\[60\\]`), 'the setup escape');
 });
+
+test('the onboarding corners sit on the same line as the drawn buttons', () => {
+  const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8');
+  const shell = read('./onboarding/onboarding-shell.tsx');
+  assert.match(shell, /top-3\.5 z-20 flex items-center gap-2 timon-window-band-centred"/, 'the scheme switch and mascot toggle');
+  assert.match(shell, /top-3\.5 z-20 gap-1 timon-window-band-centred"/, 'Back');
+  assert.match(read('./onboarding/steps/agent.tsx'), /md:top-3\.5 md:mb-0 timon-window-band-centred-md/, 'the agent step\'s view switcher');
+  const css = read('../styles/globals.css');
+  assert.match(css, /html\[data-timon-frame\^='drawn'\] \.timon-window-band-centred \{\s*top: calc\(var\(--timon-window-band-h\) \/ 2\);\s*transform: translateY\(-50%\);/);
+  assert.match(css, /@media \(min-width: 768px\) \{\s*html\[data-timon-frame\^='drawn'\] \.timon-window-band-centred-md \{/);
+});

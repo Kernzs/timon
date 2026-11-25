@@ -1263,3 +1263,16 @@ html[data-timon-frame^='drawn'] .timon-below-window-band {
   top: var(--timon-window-band-h);
   height: auto;
 }
+/* A control floating in a full-window corner (onboarding) sits on the same
+ * line as the drawn buttons: centred on their band rather than at its own
+ * top offset. The `-md` form only applies where the control is positioned. */
+html[data-timon-frame^='drawn'] .timon-window-band-centred {
+  top: calc(var(--timon-window-band-h) / 2);
+  transform: translateY(-50%);
+}
+@media (min-width: 768px) {
+  html[data-timon-frame^='drawn'] .timon-window-band-centred-md {
+    top: calc(var(--timon-window-band-h) / 2);
+    transform: translateY(-50%);
+  }
+}
