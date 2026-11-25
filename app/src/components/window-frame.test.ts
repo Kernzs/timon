@@ -41,6 +41,8 @@ async function withDom(t: test.TestContext, bridge: unknown) {
   const act = (fn: () => void) => React.act(async () => { fn(); });
   t.after(async () => {
     await act(() => root.unmount());
+    // Radix's focus scope dispatches its unmount event on a timer, which must run while the jsdom globals are still installed.
+    await new Promise((resolve) => setTimeout(resolve, 0));
     dom.window.close();
     for (const [key, d] of saved) { if (d) Object.defineProperty(globalThis, key, d); else Reflect.deleteProperty(globalThis, key); }
   });
