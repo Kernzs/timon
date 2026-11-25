@@ -1202,3 +1202,45 @@ html[data-glass-bubbles] .chat-bubble[data-glass-surface='user'][data-glass-visi
 
 .widget-stack > .widget-content > section > header:not(:has(button, a, input, select)) { display: none; }
 
+
+/* The desktop window without the system's title bar (`components/window-frame.tsx`).
+ * `data-timon-frame` keeps room in the top bar for the buttons the page draws
+ * (Windows, Linux) or for the traffic lights (macOS); `data-timon-drag` makes
+ * the top bar, and the strip standing for it on pages without one, move the
+ * window. Every control cuts itself out of a drag area: the shell hands the
+ * pointer over a drag area to the system, and a click there never reaches
+ * the page. Drag areas add up in document and painting order, so a control
+ * after the strip or inside the bar wins over them. A widget cuts itself out,
+ * not its zone: the middle of the bar stays a place to grab the window by,
+ * and a widget dragged there still drops (a drag held by the page never asks
+ * the system). */
+:root {
+  --timon-window-controls-w: 0px;
+  --timon-window-lights-w: 0px;
+}
+html[data-timon-frame='drawn'] { --timon-window-controls-w: 7.75rem; }
+html[data-timon-frame='drawn-full-screen'] { --timon-window-controls-w: 2.75rem; }
+html[data-timon-frame='native'] { --timon-window-lights-w: 4rem; }
+.timon-window-strip {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3rem;
+  /* Painted first, under everything: the page's own controls always come after it. */
+  z-index: -1;
+  pointer-events: none;
+}
+html[data-timon-drag] :is(.timon-window-strip, .timon-topbar-bar) {
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+html[data-timon-drag] :is(
+  a, button, input, select, textarea, label, summary, iframe,
+  [role='button'], [role='link'], [role='menuitem'], [role='tab'], [role='combobox'], [role='switch'], [role='checkbox'], [role='slider'],
+  [tabindex]:not([tabindex='-1']), [contenteditable]:not([contenteditable='false']),
+  .widget-frame, .timon-window-controls
+) {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
