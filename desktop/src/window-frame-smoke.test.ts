@@ -94,8 +94,11 @@ console.log('FRAME_SMOKE '+JSON.stringify(probe));
 app.exit(0);
 })().catch(fail);
 `);
+    // An empty ELECTRON_RUN_AS_NODE still counts as set on Windows: drop the key so Electron starts as an app.
+    const env: NodeJS.ProcessEnv = { ...process.env, TIMON_HOME: home };
+    delete env.ELECTRON_RUN_AS_NODE;
     const result = await promisify(execFile)(electron, [join(home, 'smoke.cjs')], {
-      env: { ...process.env, ELECTRON_RUN_AS_NODE: '', TIMON_HOME: home }, timeout: 80_000, maxBuffer: 2 * 1024 * 1024,
+      env, timeout: 80_000, maxBuffer: 2 * 1024 * 1024,
     }).catch((error) => { throw new Error(`frame smoke failed (${error.code ?? error.signal}): ${error.stdout}\n${error.stderr}`); });
     const line = /FRAME_SMOKE (.*)/.exec(result.stdout)?.[1];
     assert.ok(line, result.stdout);
