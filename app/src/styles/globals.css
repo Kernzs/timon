@@ -1217,9 +1217,10 @@ html[data-glass-bubbles] .chat-bubble[data-glass-surface='user'][data-glass-visi
 :root {
   --timon-window-controls-w: 0px;
   --timon-window-lights-w: 0px;
+  --timon-window-band-h: 0px;
 }
-html[data-timon-frame='drawn'] { --timon-window-controls-w: 7.75rem; }
-html[data-timon-frame='drawn-full-screen'] { --timon-window-controls-w: 2.75rem; }
+html[data-timon-frame='drawn'] { --timon-window-controls-w: 7.75rem; --timon-window-band-h: 3rem; }
+html[data-timon-frame='drawn-full-screen'] { --timon-window-controls-w: 2.75rem; --timon-window-band-h: 3rem; }
 html[data-timon-frame='native'] { --timon-window-lights-w: 4rem; }
 .timon-window-strip {
   position: fixed;
@@ -1231,16 +1232,34 @@ html[data-timon-frame='native'] { --timon-window-lights-w: 4rem; }
   z-index: -1;
   pointer-events: none;
 }
-html[data-timon-drag] :is(.timon-window-strip, .timon-topbar-bar) {
+/* The strip stands for a missing top bar only: where the page has one, the
+ * strip would sit over the content below it once the bar folds away (narrow
+ * windows hide it on scroll). */
+html[data-timon-drag]:not(:has(.timon-topbar-bar)) .timon-window-strip,
+html[data-timon-drag] .timon-topbar-bar {
   -webkit-app-region: drag;
   app-region: drag;
 }
+/* Drag areas ignore stacking: a layer laid over the top of the window (a
+ * sheet, a dialog and its overlay, a menu, a popover, a full-screen view)
+ * would move the window instead of taking the click unless it cuts itself
+ * out. `.timon-window-layer` marks the backdrops that carry no role. */
 html[data-timon-drag] :is(
   a, button, input, select, textarea, label, summary, iframe,
   [role='button'], [role='link'], [role='menuitem'], [role='tab'], [role='combobox'], [role='switch'], [role='checkbox'], [role='slider'],
+  [role='dialog'], [role='alertdialog'], [role='menu'], [role='listbox'], [role='option'], [role='tooltip'], [aria-modal='true'],
+  [data-radix-popper-content-wrapper],
   [tabindex]:not([tabindex='-1']), [contenteditable]:not([contenteditable='false']),
-  .widget-frame, .timon-window-controls
+  .widget-frame, .timon-window-controls, .timon-window-layer
 ) {
   -webkit-app-region: no-drag;
   app-region: no-drag;
+}
+/* The drawn buttons stay on top of everything, so a layer that reaches the
+ * top right corner (a side sheet, a full-screen view, each with its own
+ * close button there) starts below their band instead of under them. Its
+ * overlay still covers the whole window. */
+html[data-timon-frame^='drawn'] .timon-below-window-band {
+  top: var(--timon-window-band-h);
+  height: auto;
 }

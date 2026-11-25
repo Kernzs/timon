@@ -31,7 +31,7 @@ async function withDom(t: test.TestContext, bridge: unknown) {
   const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost/', pretendToBeVisual: true });
   if (bridge) Object.defineProperty(dom.window, 'timonDesktop', { value: { restartAfterSetup: async () => {}, windowFrame: bridge }, configurable: true });
   const saved = new Map<string, PropertyDescriptor | undefined>();
-  for (const key of ['window', 'document', 'navigator', 'HTMLElement', 'Element', 'Node', 'SVGElement', 'Event', 'MouseEvent', 'getComputedStyle', 'IS_REACT_ACT_ENVIRONMENT']) {
+  for (const key of ['window', 'document', 'navigator', 'HTMLElement', 'Element', 'Node', 'SVGElement', 'Event', 'MouseEvent', 'KeyboardEvent', 'FocusEvent', 'CustomEvent', 'NodeFilter', 'HTMLInputElement', 'MutationObserver', 'requestAnimationFrame', 'cancelAnimationFrame', 'getComputedStyle', 'IS_REACT_ACT_ENVIRONMENT']) {
     saved.set(key, Object.getOwnPropertyDescriptor(globalThis, key));
     const value = key === 'window' ? dom.window : key === 'IS_REACT_ACT_ENVIRONMENT' ? true : Reflect.get(dom.window, key);
     Object.defineProperty(globalThis, key, { value, configurable: true, writable: true });
@@ -141,9 +141,39 @@ test('the top bar keeps the room the stylesheet gives the frame, and drags the w
   assert.match(css, /:root \{\s*--timon-window-controls-w: 0px;\s*--timon-window-lights-w: 0px;/);
   assert.match(css, /html\[data-timon-frame='drawn'\] \{ --timon-window-controls-w: /);
   assert.match(css, /html\[data-timon-frame='native'\] \{ --timon-window-lights-w: /);
-  assert.match(css, /html\[data-timon-drag\] :is\(\.timon-window-strip, \.timon-topbar-bar\) \{\s*-webkit-app-region: drag;/);
+  // The strip drags only where the page has no top bar of its own: under a
+  // folded bar it would sit over the content.
+  assert.match(css, /html\[data-timon-drag\]:not\(:has\(\.timon-topbar-bar\)\) \.timon-window-strip,\s*html\[data-timon-drag\] \.timon-topbar-bar \{\s*-webkit-app-region: drag;/);
   const noDrag = /html\[data-timon-drag\] :is\(([^)]*(?:\([^)]*\)[^)]*)*)\) \{\s*-webkit-app-region: no-drag;/.exec(css)?.[1] ?? '';
   for (const control of ['button', 'a', 'input', '[role=\'menuitem\']', '.widget-frame', '.timon-window-controls']) {
     assert.ok(noDrag.includes(control), `${control} stays clickable inside the drag area`);
   }
+  // Drag areas ignore stacking: every layer a portal lays over the bar cuts itself out.
+  for (const layer of [
+    '[role=\'dialog\']', '[role=\'alertdialog\']', '[role=\'menu\']', '[role=\'listbox\']', '[role=\'option\']', '[role=\'tooltip\']',
+    '[aria-modal=\'true\']', '[data-radix-popper-content-wrapper]', '.timon-window-layer',
+  ]) {
+    assert.ok(noDrag.includes(layer), `${layer} never moves the window`);
+  }
+});
+
+test('a side sheet starts below the drawn buttons, so its own close button is not under the window\'s', async (t) => {
+  const css = readFileSync(new URL('../styles/globals.css', import.meta.url), 'utf8');
+  // The band is as tall as the buttons' row (`h-12`), and only a drawn frame has one.
+  assert.match(css, /--timon-window-band-h: 0px;/);
+  assert.match(css, /html\[data-timon-frame='drawn'\] \{[^}]*--timon-window-band-h: 3rem;/);
+  assert.match(css, /html\[data-timon-frame='drawn-full-screen'\] \{[^}]*--timon-window-band-h: 3rem;/);
+  assert.match(css, /html\[data-timon-frame\^='drawn'\] \.timon-below-window-band \{\s*top: var\(--timon-window-band-h\);\s*height: auto;/);
+  const { renderToStaticMarkup } = await import('react-dom/server');
+  const { WindowControls } = await import('./window-frame');
+  assert.match(renderToStaticMarkup(React.createElement(WindowControls, { state: DRAWN })), /class="timon-window-controls fixed right-0 top-0 z-\[60\][^"]* h-12 /);
+
+  const { root, act, dom } = await withDom(t, null);
+  const { Sheet, SheetContent, SheetTitle } = await import('./ui/sheet');
+  await act(() => root.render(React.createElement(Sheet, { open: true },
+    React.createElement(SheetContent, { 'aria-describedby': undefined }, React.createElement(SheetTitle, null, 'Mission')))));
+  const sheet = dom.window.document.querySelector('[role="dialog"]');
+  assert.ok(sheet?.classList.contains('timon-below-window-band'), 'the right sheet moves down by the band');
+  assert.ok(sheet?.querySelector('button.right-4.top-4'), 'its close button sits in its own top right corner, now below the band');
+  assert.ok(sheet?.previousElementSibling?.classList.contains('timon-window-layer'), 'the overlay still covers the band, and never drags');
 });
