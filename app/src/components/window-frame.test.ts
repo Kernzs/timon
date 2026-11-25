@@ -70,8 +70,8 @@ test('in a browser the page carries no frame, no strip and no button', async (t)
   const html = dom.window.document.documentElement;
   assert.equal(html.hasAttribute('data-timon-frame'), false);
   assert.equal(html.hasAttribute('data-timon-drag'), false);
-  assert.equal(dom.window.document.querySelector('.timon-window-strip'), null);
-  assert.equal(dom.window.document.querySelector('button'), null);
+  assert.ok(!dom.window.document.querySelector('.timon-window-strip'));
+  assert.ok(!dom.window.document.querySelector('button'));
 });
 
 test('a frameless window gets its drag strip first and its buttons last, and the buttons act on it', async (t) => {
@@ -130,7 +130,7 @@ test('macOS keeps its traffic lights: no button drawn, room kept at the left end
   await act(() => root.render(React.createElement(WindowFrame)));
   await act(() => {});
   assert.equal(dom.window.document.documentElement.getAttribute('data-timon-frame'), 'native');
-  assert.equal(dom.window.document.querySelector('button'), null);
+  assert.ok(!dom.window.document.querySelector('button'));
 });
 
 test('the top bar keeps the room the stylesheet gives the frame, and drags the window', () => {
