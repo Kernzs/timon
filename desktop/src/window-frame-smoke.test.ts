@@ -85,6 +85,11 @@ for(const [k,sel] of [['pageControl','#page-control'],['widget','.widget-frame']
 probe.content=await at(300,240);
 probe.rightEdge=await at(cb.width-2,240);
 if(process.env.TIMON_SMOKE_CAPTURE)fs.writeFileSync(process.env.TIMON_SMOKE_CAPTURE,(await shown.webContents.capturePage()).toPNG());
+// A layer a portal lays over the bar, as a sheet or a popover does, with no control under the pointer.
+await shown.webContents.executeJavaScript("document.body.insertAdjacentHTML('beforeend','<div role=\\\\'dialog\\\\' style=\\\\'position:fixed;top:0;left:380px;width:200px;height:200px;background:#22252c\\\\'>Sheet</div>')");
+await wait(500);
+probe.layer=await at(480,24);
+probe.barBesideLayer=await at(300,24);
 console.log('FRAME_SMOKE '+JSON.stringify(probe));
 app.exit(0);
 })().catch(fail);
@@ -99,6 +104,8 @@ app.exit(0);
     for (const control of ['pageControl', 'widget', 'minimize', 'close']) assert.equal(probe[control], HT.client, `${control} stays clickable`);
     assert.equal(probe.content, HT.client, 'the page content is no drag area, and the page put away under it adds none');
     assert.equal(probe.rightEdge, HT.right, 'the edges still resize the window');
+    assert.equal(probe.layer, HT.client, 'a layer laid over the bar takes the click instead of moving the window');
+    assert.equal(probe.barBesideLayer, HT.caption, 'the bar around it still moves the window');
   } finally {
     await rm(home, { recursive: true, force: true });
   }
