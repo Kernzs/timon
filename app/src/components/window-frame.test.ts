@@ -177,3 +177,15 @@ test('a side sheet starts below the drawn buttons, so its own close button is no
   assert.ok(sheet?.querySelector('button.right-4.top-4'), 'its close button sits in its own top right corner, now below the band');
   assert.ok(sheet?.previousElementSibling?.classList.contains('timon-window-layer'), 'the overlay still covers the band, and never drags');
 });
+
+test('the full-window corners of onboarding and setup leave the window\'s buttons free', () => {
+  // These layers are their own stacking contexts (or paint after the buttons
+  // at the same z): only a horizontal offset keeps a click off the buttons.
+  const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8');
+  const right = /right-\[calc\(1rem\+var\(--timon-window-controls-w,0px\)\)\]/;
+  const shell = read('./onboarding/onboarding-shell.tsx');
+  assert.match(shell, new RegExp(`absolute ${right.source} top-3\\.5 z-20 flex`), 'the scheme switch and mascot toggle');
+  assert.match(shell, /absolute left-\[calc\(1rem\+var\(--timon-window-lights-w,0px\)\)\] top-3\.5 z-20 gap-1/, 'Back, clear of macOS\'s traffic lights');
+  assert.match(read('./onboarding/steps/agent.tsx'), new RegExp(`md:${right.source} md:top-3\\.5`), 'the agent step\'s view switcher');
+  assert.match(read('../app/setup/agent/setup-escape.tsx'), new RegExp(`fixed ${right.source} top-4 z-\\[60\\]`), 'the setup escape');
+});
